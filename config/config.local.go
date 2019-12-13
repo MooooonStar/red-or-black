@@ -4,18 +4,22 @@ const (
 	DatabaseUserName = "root"
 	DatabasePassword = ""
 	DatabaseHost     = "localhost:3306"
-	DatabaseName     = "group_assistant"
+	DatabaseName     = "red_or_black"
 
-	RedisHost     = ""
-	RedisDB       = ""
+	RedisHost     = "localhost:6379"
+	RedisDB       = 0
 	RedisPassword = ""
 
-	ClientID     = "e89acc53-6a5b-407f-8558-d574e82e5922"
-	SessionID    = "de3432cb-38ef-4418-80ad-512693aebd55"
-	ClientSecret = "903b4623adfb01aadeac9628977ef9cdf7172961051c5e2a532fc86baec3b734"
-	PrivateKey   = "-----BEGIN RSA PRIVATE KEY-----\r\nMIICXQIBAAKBgQCF4Ks6Vv7J99J3SOsAKmL3A+zwdFkQbZmNTiz3ucXhcyooMY+l\r\nmo7ks9ke421nXdPI6fJIykXCX8HffpsahhjWgBrD+SmfV8rjJpOlX7xydhr4h+7C\r\nJPxVnYGGW/elanzBjZba7p6zO4b3wlU/BEo60xiMrR9KGRvoKMu4ZawKewIDAQAB\r\nAoGACXEU4mJsSbYuo7cCy9oxbJZcSYELHvt7ztlqlnYFnKbQnFESfm1uEncUovcL\r\nKjUV0J+fNL7/OHwkYiy9p5s5eRvSndp1vOTdEenATXFs9wUg68mTlDYmAnzrXHWU\r\nO2BBf4NE4Zk6jIUFTg70KU0ReskgRcZAQAGjzS6sArvVd5ECQQD+Xj5AO1vPvFFg\r\nl4/FujnzAO1FTMKuxpglE4FxNnRR/cUbJHJeS8Whddo7FnWjIjwkTjM7wU7yt30T\r\nsy2j44l/AkEAhryKULbpjJnFIJYbC2tSNOXt4KHmHAb1P9US7u0Bb4Q0kThs4Lz0\r\nDPMlfV/IiTagDDm9HGbUKdY/vksWkCUlBQJBAJ6zvBElN8YnT3p9dVU/OFKV3HOl\r\nTb3v6BMR1WwGNpLFSwoBNl4A1oBDYHIHNEQg4vcf1zVMCW7D7oSxASPEng8CQGXz\r\nAaGjVcLKk4tdqScR1Mkr9buUJV6tsSLUohfhg8WSvofnrxK6RtwJmyNrt3yDtcSq\r\nZ7q23/CsKd1eSbtWL9UCQQDbF3h7A7lsMhvSOq5e0gGmJiKxLDeLbWnI6Yzac3oc\r\nhkaW2wzxgMRgSWH5yzvCbeiagOE/rm/mrPm019CcFUgC\r\n-----END RSA PRIVATE KEY-----\r\n"
-	Pin          = "644926"
-	PinToken     = "NmBcuT898dOTZmgIz9oosx3Rdi6Eae8Pd82X2SX1wTDLVIyftAReh4tZZWsfMhxHL6j4vES9224Wpqp6R5jqqClT5cjOvQ/Q0sPfFR/hvuHdkE4tvo7Onwe5gkKeVdNhioRS7T+xj4ll7x7ecn7M3Zfywufp2c+Dx6lKrIpAx4s="
+	IdentityNumber = 7000102500
+	UserID         = "e89acc53-6a5b-407f-8558-d574e82e5922"
+	SessionID      = "338bdcc4-400c-49cc-88ee-248bd38bdde4"
+	ClientSecret   = "903b4623adfb01aadeac9628977ef9cdf7172961051c5e2a532fc86baec3b734"
+	PrivateKey     = "-----BEGIN RSA PRIVATE KEY-----\r\nMIICXAIBAAKBgQCTjiaQ/w+UauKhTPD8SoCetGr879UEf7gGaHTrIgxdVVoeiZY8\r\npPtYbNof5uXPqYZJrizb+AohH+E0VzPzngIToZyGpU3TiO2jErCo2qh1GaZzvN1C\r\nHRsMeKwPfz34CAfaCEy9/+r1vvJJskc/MUKa88JbI4sxtpotN56iL5gFxQIDAQAB\r\nAoGAQw24LPAbzmB8OLzUTnI03Oo0LFl4viCkKhVR/IBuigN9fp8brNd0eQyOWyz8\r\nhlANfHIwZI3lXIQ2PSjbrPvDCSQGGpFZkxwTU5/txo11w+dTspgDkLAStgEr+jOf\r\nBuumF6Px76Q5FuE4CkqtO26lVlw8LxQ2g/JhaKF4LB38iUkCQQDJq3sKY7RSIISo\r\nwmpi5BUPpqgSLQNOZREWjvQa7sb1Lfx1O0nV73x89G7pdP0RuwQ8p6xQrW7nW407\r\nMhN4WNPHAkEAu06QAJWapxfNOWvOqQkUBpB2qCSKWbXGZlfN8nkm1r2TA6RyB+b9\r\nLvPe2krFOi/rjzcOD8v3X60+gI0+BGFCEwJAQSWvKq0IzFsK38VmPqn1j8fDlZOK\r\n9OE7QvFNNAIcrYl8e5Z6hKzHp0oDJlGPixHCDaIQzUMph32QwyWrGn5/cwJBAKFW\r\nAE+gjT+UDt+A7tdGzIsC8FHQd6LiIeyRgQF0PXIGhJVEljwcSMSiprgcY1nFYP9R\r\nCrmslH1C+m08O8kGBSUCQG7lIQAdMVc+Q9rUBRPqtua3e2DJBMNuN6BXF0t/ILWM\r\n5xJfy0rA9IAUzO1/J3uyjDyU33GlVRnqJD1VgdX6mVo=\r\n-----END RSA PRIVATE KEY-----\r\n"
+	Pin            = "896887"
+	PinToken       = "GW6tFvqjTiYSAyPl/PJr5wp4pzXqIsmknE098yAs2TgnIdQ+ZzpI4RM7kYXPQvy6PcAr346A4INCC5iA7faGOo7FoHjnQwKD9CUMQNXChbFkEHIjb+JHa58uPX0aSOGCQI+walQfSbDu2hcnCVBMmrRdwepdgrW0K47Qj8MuKhA="
 
-	MaxUsersPerRound = 10
+	UsersPerRound  = 2
+	MaxRound       = 5
+	AmountPerRound = "0.00001"
+	PunishRate     = 0.1
 )
