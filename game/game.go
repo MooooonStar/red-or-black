@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	ButtonJoin       = "enqueue"
+	Rules            = "eyJhdHRhY2htZW50X2lkIjoiMzg3MmVmYTctZjNiNS00MTVkLTk4OWYtMjg1OTkxNGQwZDlkIiwibWltZV90eXBlIjoiaW1hZ2UvcG5nIiwic2l6ZSI6MjA4MjM1LCJ3aWR0aCI6MTg4MiwiaGVpZ2h0Ijo3NzgsIm5hbWUiOiJJTUdfMjAxOTExNl8xNjI0XzEwNDE0NjkyNy5wbmciLCJ0aHVtYm5haWwiOiJpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBRUFBQUFCQUNBSUFBQUFsQythSkFBQUFBM05DU1ZRSUNBamI0VS9nQUFBQVlVbEVRVlJvZ2UzUFFRMEFJQkRBTU1DL3RCT0ZDQjROeWFwZzJ6T3pmblowd0tzR3RBYTBCclFHdEFhMEJyUUd0QWEwQnJRR3RBYTBCclFHdEFhMEJyUUd0QWEwQnJRR3RBYTBCclFHdEFhMEJyUUd0QWEwQnJRR3RBYTBCclFHdEF1YjZRTGtXcWZSeVFBQUFBQkpSVTVFcmtKZ2dnPT0iLCJkaWdlc3QiOiIiLCJrZXkiOiIifQ=="
 	RedisWaitingList = "waitinglist"
 	CmdAlreadyPaid   = "ihavepaidalready"
 	GroupOneName     = "A组"
@@ -71,6 +71,10 @@ func (j *Judge) OnMessage(ctx context.Context, msgView bot.MessageView, clientID
 			Status:       models.UserStatusUnpaid,
 		}
 		if err = models.InsertUser(ctx, user); err != nil {
+			return err
+		}
+		id := bot.UniqueConversationId(config.UserID, msgView.UserId)
+		if err = sendMessage(ctx, id, msgView.UserId, "PLAIN_IMAGE", Rules); err != nil {
 			return err
 		}
 	}
@@ -520,13 +524,13 @@ func sendVotesResults(ctx context.Context, id int64) error {
 	return nil
 }
 
-func sendMessage(ctx context.Context, conversation, user, content string) error {
+func sendMessage(ctx context.Context, conversation, user, category, content string) error {
 	m := &models.Message{
 		UserID:         config.UserID,
 		ConversationID: conversation,
 		RecipientID:    user,
 		MessageID:      uuid.Must(uuid.NewV4()).String(),
-		Category:       "PLAIN_TEXT",
+		Category:       category,
 		Data:           base64.StdEncoding.EncodeToString([]byte(content)),
 	}
 	return models.InsertMessage(ctx, m)
