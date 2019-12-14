@@ -244,9 +244,9 @@ func settleGame(ctx context.Context, id int64) error {
 				if err != nil {
 					return err
 				}
-				content = "恭喜您获得游戏胜利👏👏👏"
+				content = "干得漂亮👏👏👏"
 			} else {
-				content = "很遗憾，您输了😪😪😪"
+				content = "很遗憾,您输了此局游戏😪😪😪"
 			}
 			m := models.Message{
 				UserID:         config.UserID,
@@ -281,12 +281,12 @@ func sendUnpaidMessage(ctx context.Context, conversation, user, trace string) er
 	action := fmt.Sprintf("mixin://pay?recipient=%v&asset=%v&amount=%v&trace=%v&memo=%v", config.UserID, models.BTC, config.AmountPerRound, trace, "Pay")
 	btns, _ := json.Marshal([]map[string]interface{}{
 		map[string]interface{}{
-			"label":  "您需要支付以加入排队",
+			"label":  "您需要先支付以加入排队",
 			"color":  "#FF0000",
 			"action": action,
 		},
 		map[string]interface{}{
-			"label":  "我已支付",
+			"label":  "支付完后点我",
 			"color":  "#000000",
 			"action": fmt.Sprintf("input:%v", CmdAlreadyPaid),
 		},
