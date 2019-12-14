@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -42,10 +43,90 @@ func (j *Judge) Listen(ctx context.Context) {
 	for {
 		bc := bot.NewBlazeClient(config.UserID, config.SessionID, config.PrivateKey)
 		if err := bc.Loop(ctx, j); err != nil {
-			log.Println("error in loop: ", err)
+			log.Error("error in loop: ", err)
 			time.Sleep(time.Second)
 		}
 	}
+}
+
+func handleUserUnpaid(ctx context.Context, conversation, user, content string) error {
+	payment, err := checkPayment(ctx, user)
+	if err != nil {
+		return err
+	} else if !payment.Paid {
+		return sendUnpaidMessage(ctx, conversation, user, payment.TraceID)
+	}
+	if content != CmdAlreadyPaid {
+		return nil
+	}
+	err = session.Redis(ctx).ZAdd(RedisWaitingList, &redis.Z{
+		Score:  float64(time.Now().Unix()),
+		Member: user,
+	}).Err()
+	if err != nil {
+		return err
+	}
+	_, err = models.UpdateUserStatus(ctx, user, models.UserStatusWaiting)
+	if err != nil {
+		return err
+	}
+	return checkQueueIsFull(ctx, conversation, user)
+}
+
+func checkQueueIsFull(ctx context.Context, conversation, user string) error {
+	users, err := session.Redis(ctx).ZRange(RedisWaitingList, 0, config.UsersPerRound).Result()
+	if err != nil {
+		return err
+	}
+	if len(users) < config.UsersPerRound {
+		return sendWaitingMessage(ctx, conversation, user)
+	}
+	return startGame(ctx, users)
+}
+
+func handleUserActive(ctx context.Context, user, content string) error {
+	player, err := models.FindCurrentPlayer(ctx, user)
+	if err != nil || player == nil {
+		return err
+	}
+	game, err := models.FindGame(ctx, player.GameID)
+	if err != nil {
+		return err
+	}
+	items := strings.Split(content, " ")
+	if len(items) != 2 {
+		return nil
+	}
+	round, _ := strconv.Atoi(items[0])
+	if round != game.Round || (items[1] != "red" && items[1] != "black") {
+		return nil
+	}
+	key := fmt.Sprintf("voted.no%v.round%v", game.ID, game.Round)
+	n, err := session.Redis(ctx).SAdd(key, user).Result()
+	if err != nil || n == 0 {
+		return err
+	}
+	key1 := fmt.Sprintf("votes.no%v.round%v", game.ID, game.Round)
+	field := fmt.Sprintf("%v.%v", player.Side, items[1])
+	_, err = session.Redis(ctx).HIncrBy(key1, field, 1).Result()
+	if err != nil {
+		return err
+	}
+	count, err := session.Redis(ctx).SCard(key).Result()
+	if err != nil || count != config.UsersPerRound {
+		return err
+	}
+	_, err = countVotes(ctx, game.ID, round)
+	if err != nil {
+		return err
+	}
+	if err = sendVotesResults(ctx, game.ID); err != nil {
+		return err
+	}
+	if round < config.MaxRound {
+		return nextGameStage(ctx, game.ID, round)
+	}
+	return settleGame(ctx, game.ID)
 }
 
 func (j *Judge) OnMessage(ctx context.Context, msgView bot.MessageView, clientID string) error {
@@ -70,89 +151,21 @@ func (j *Judge) OnMessage(ctx context.Context, msgView bot.MessageView, clientID
 			EarnedAmount: "0",
 			Status:       models.UserStatusUnpaid,
 		}
-		if err = models.InsertUser(ctx, user); err != nil {
+		if err := models.InsertUser(ctx, user); err != nil {
 			return err
 		}
 		id := bot.UniqueConversationId(config.UserID, msgView.UserId)
-		if err = sendMessage(ctx, id, msgView.UserId, "PLAIN_IMAGE", Rules); err != nil {
+		if err := sendMessage(ctx, id, msgView.UserId, "PLAIN_IMAGE", Rules); err != nil {
 			return err
 		}
 	}
 	switch user.Status {
 	case models.UserStatusUnpaid:
-		payment, err := checkPayment(ctx, msgView.UserId)
-		if err != nil {
-			return err
-		} else if !payment.Paid {
-			return sendUnpaidMessage(ctx, msgView.ConversationId, msgView.UserId, payment.TraceID)
-		}
-		if raw != CmdAlreadyPaid {
-			return nil
-		}
-		_, err = models.UpdateUserStatus(ctx, msgView.UserId, models.UserStatusWaiting)
-		if err != nil {
-			return err
-		}
-		err = session.Redis(ctx).ZAdd(RedisWaitingList, &redis.Z{
-			Score:  float64(time.Now().Unix()),
-			Member: msgView.UserId,
-		}).Err()
-		if err != nil {
-			return err
-		}
-		users, err := session.Redis(ctx).ZRange(RedisWaitingList, 0, config.UsersPerRound).Result()
-		if err != nil {
-			return err
-		}
-		if len(users) < config.UsersPerRound {
-			return sendWaitingMessage(ctx, msgView.ConversationId, msgView.UserId)
-		}
-		return startGame(ctx, users)
+		return handleUserUnpaid(ctx, msgView.ConversationId, msgView.UserId, raw)
 	case models.UserStatusWaiting:
-		return sendWaitingMessage(ctx, msgView.ConversationId, msgView.UserId)
+		return checkQueueIsFull(ctx, msgView.ConversationId, msgView.UserId)
 	case models.UserStatusActive:
-		player, err := models.FindCurrentPlayer(ctx, msgView.UserId)
-		if err != nil || player == nil {
-			return err
-		}
-		game, err := models.FindGame(ctx, player.GameID)
-		if err != nil {
-			return err
-		}
-		items := strings.Split(raw, " ")
-		if len(items) != 2 {
-			return nil
-		}
-		round, _ := strconv.Atoi(items[0])
-		if round != game.Round || (items[1] != "red" && items[1] != "black") {
-			return nil
-		}
-		key := fmt.Sprintf("voted.no%v.round%v", game.ID, game.Round)
-		n, err := session.Redis(ctx).SAdd(key, msgView.UserId).Result()
-		if err != nil || n == 0 {
-			return err
-		}
-		key1 := fmt.Sprintf("votes.no%v.round%v", game.ID, game.Round)
-		field := fmt.Sprintf("%v.%v", player.Side, items[1])
-		_, err = session.Redis(ctx).HIncrBy(key1, field, 1).Result()
-		if err != nil {
-			return err
-		}
-		count, err := session.Redis(ctx).SCard(key).Result()
-		if err != nil || count != config.UsersPerRound {
-			return err
-		}
-		_, err = countVotes(ctx, game.ID, round)
-		if err != nil {
-			return err
-		}
-		if err = sendVotesResults(ctx, game.ID); err != nil {
-			return err
-		}
-		if round < config.MaxRound {
-			return nextGameStage(ctx, game.ID, round)
-		}
-		return settleGame(ctx, game.ID)
+		return handleUserActive(ctx, msgView.UserId, raw)
 	}
 	return nil
 }
@@ -265,12 +278,12 @@ func settleGame(ctx context.Context, id int64) error {
 }
 
 func sendUnpaidMessage(ctx context.Context, conversation, user, trace string) error {
-	url := fmt.Sprintf("mixin://pay?recipient=%v&asset=%v&amount=%v&trace=%v&memo=%v", config.UserID, models.BTC, config.AmountPerRound, trace, "Pay to join.")
+	action := fmt.Sprintf("mixin://pay?recipient=%v&asset=%v&amount=%v&trace=%v&memo=%v", config.UserID, models.BTC, config.AmountPerRound, trace, "Pay")
 	btns, _ := json.Marshal([]map[string]interface{}{
 		map[string]interface{}{
 			"label":  "您需要支付以加入排队",
 			"color":  "#FF0000",
-			"action": url,
+			"action": action,
 		},
 		map[string]interface{}{
 			"label":  "我已支付",
@@ -278,6 +291,7 @@ func sendUnpaidMessage(ctx context.Context, conversation, user, trace string) er
 			"action": fmt.Sprintf("input:%v", CmdAlreadyPaid),
 		},
 	})
+	log.Println("buttons", string(btns))
 	m := models.Message{
 		UserID:         config.UserID,
 		ConversationID: conversation,
@@ -398,10 +412,12 @@ func startGame(ctx context.Context, users []string) (err error) {
 		started = true
 		return nil
 	})
-	if err != nil || !started {
-		return
+	if err != nil {
+		return err
 	}
-
+	if !started {
+		return errors.New("game is not started")
+	}
 	err = session.Redis(ctx).ZRemRangeByRank(RedisWaitingList, 0, config.UsersPerRound).Err()
 	return
 }
