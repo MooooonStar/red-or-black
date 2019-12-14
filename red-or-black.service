@@ -1,0 +1,13 @@
+[Unit]
+Description=Red Or Black
+After=network.target
+
+[Service]
+WorkingDirectory=/usr/local/red-or-black
+ExecStart=/usr/local/red-or-black/red-or-black
+Restart=always
+Type=simple
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

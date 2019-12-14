@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS transfers(
     amount              VARCHAR(50),
     opponent_id         CHAR(36),
     memo                VARCHAR(140),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     PRIMARY KEY(transfer_id)
 ) charset=utf8mb4;
 
