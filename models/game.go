@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/MooooonStar/red-or-black/session"
+	"github.com/jinzhu/gorm"
 	"github.com/shopspring/decimal"
 )
 
@@ -46,4 +47,9 @@ func FindPrizePool(ctx context.Context, deadline int64) (string, error) {
 		sum = sum.Add(amount)
 	}
 	return sum.String(), nil
+}
+
+func UpdatePrizeUsed(tx *gorm.DB, deadline int64) error {
+	return tx.Model(Game{}).Where("status = ? AND used = ? AND id < ?", GameStatusDone, false, deadline).
+		Update("used", true).Error
 }

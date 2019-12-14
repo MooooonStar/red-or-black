@@ -55,10 +55,10 @@ func (j *Judge) OnMessage(ctx context.Context, msgView bot.MessageView, clientID
 	if strings.HasPrefix(raw, prefix) {
 		raw = raw[len(prefix):]
 	}
-	log.Info(msgView.MessageId, ", ", string(content))
 	if msgView.Category != bot.MessageCategoryPlainText {
 		return nil
 	}
+	log.Info(msgView.UserId, ", ", string(content))
 	user, err := models.FindUser(ctx, msgView.UserId)
 	if err != nil {
 		return err
@@ -107,10 +107,6 @@ func (j *Judge) OnMessage(ctx context.Context, msgView bot.MessageView, clientID
 	case models.UserStatusWaiting:
 		return sendWaitingMessage(ctx, msgView.ConversationId, msgView.UserId)
 	case models.UserStatusActive:
-		items := strings.Split(raw, " ")
-		if len(items) != 2 {
-			return nil
-		}
 		player, err := models.FindCurrentPlayer(ctx, msgView.UserId)
 		if err != nil || player == nil {
 			return err
@@ -118,6 +114,10 @@ func (j *Judge) OnMessage(ctx context.Context, msgView bot.MessageView, clientID
 		game, err := models.FindGame(ctx, player.GameID)
 		if err != nil {
 			return err
+		}
+		items := strings.Split(raw, " ")
+		if len(items) != 2 {
+			return nil
 		}
 		round, _ := strconv.Atoi(items[0])
 		if round != game.Round || (items[1] != "red" && items[1] != "black") {
@@ -178,7 +178,7 @@ func settleGame(ctx context.Context, id int64) error {
 	} else {
 		prize = "0"
 		if a == b {
-			side = models.SideOne + models.SideTwo
+			side = "both"
 			count = config.UsersPerRound
 		} else {
 			side = models.SideOne
@@ -215,7 +215,7 @@ func settleGame(ctx context.Context, id int64) error {
 		for _, player := range players {
 			users = append(users, player.UserID)
 			var content string
-			if strings.Contains(side, player.Side) {
+			if side == "both" || side == player.Side {
 				t := models.Transfer{
 					TransferID: bot.UniqueConversationId(player.UserID, "PRIZE FROM GAME"+fmt.Sprint(id)),
 					AssetID:    models.BTC,
@@ -243,11 +243,11 @@ func settleGame(ctx context.Context, id int64) error {
 				return err
 			}
 		}
-		err = tx.Where("user_id IN (?)", users).Debug().Delete(models.Payment{}).Error
+		err = tx.Where("user_id IN (?)", users).Delete(models.Payment{}).Error
 		if err != nil {
 			return err
 		}
-		err = tx.Where("game_id = ?", id).Debug().Delete(models.Player{}).Error
+		err = tx.Where("game_id = ?", id).Delete(models.Player{}).Error
 		if err != nil {
 			return err
 		}
@@ -255,8 +255,7 @@ func settleGame(ctx context.Context, id int64) error {
 		if err != nil {
 			return err
 		}
-
-		return nil
+		return models.UpdatePrizeUsed(tx, id)
 	})
 	return err
 }
@@ -330,7 +329,24 @@ func startGame(ctx context.Context, users []string) (err error) {
 		users[i], users[j] = users[j], users[i]
 	}
 
-	var id1, id2 string
+	id1 := uuid.Must(uuid.NewV4()).String()
+	id2 := uuid.Must(uuid.NewV4()).String()
+	var groupA, groupB []bot.Participant
+	for i, id := range users {
+		if i < mid {
+			groupA = append(groupA, bot.Participant{UserId: id})
+		} else {
+			groupB = append(groupB, bot.Participant{UserId: id})
+		}
+	}
+	_, err = bot.CreateConversation(ctx, GroupOneName, "GROUP", id1, groupA, config.UserID, config.SessionID, config.PrivateKey)
+	if err != nil {
+		return
+	}
+	_, err = bot.CreateConversation(ctx, GroupTwoName, "GROUP", id2, groupB, config.UserID, config.SessionID, config.PrivateKey)
+	if err != nil {
+		return
+	}
 	var started bool
 	err = session.RunInTransaction(ctx, func(tx *gorm.DB) error {
 		g := &models.Game{
@@ -344,12 +360,12 @@ func startGame(ctx context.Context, users []string) (err error) {
 		if err != nil {
 			return err
 		}
-		id1 = bot.UniqueConversationId(config.UserID, fmt.Sprintf("GAME.ONE.%v", g.ID))
+		id1 = bot.UniqueConversationId(fmt.Sprintf("game.no%v.one", g.ID), config.UserID)
 		err = sendNotifyMessages(tx, id1, users[:mid], 1)
 		if err != nil {
 			return err
 		}
-		id2 = bot.UniqueConversationId(config.UserID, fmt.Sprintf("GAME.TWO.%v", g.ID))
+		id2 = bot.UniqueConversationId(fmt.Sprintf("game.no%v.two", g.ID), config.UserID)
 		err = sendNotifyMessages(tx, id2, users[mid:], 1)
 		if err != nil {
 			return err
@@ -384,22 +400,6 @@ func startGame(ctx context.Context, users []string) (err error) {
 		return
 	}
 
-	var groupA, groupB []bot.Participant
-	for i, id := range users {
-		if i < config.UsersPerRound/2 {
-			groupA = append(groupA, bot.Participant{UserId: id})
-		} else {
-			groupB = append(groupB, bot.Participant{UserId: id})
-		}
-	}
-	_, err = bot.CreateConversation(ctx, GroupOneName, "GROUP", id1, groupA, config.UserID, config.SessionID, config.PrivateKey)
-	if err != nil {
-		return
-	}
-	_, err = bot.CreateConversation(ctx, GroupTwoName, "GROUP", id2, groupB, config.UserID, config.SessionID, config.PrivateKey)
-	if err != nil {
-		return
-	}
 	err = session.Redis(ctx).ZRemRangeByRank(RedisWaitingList, 0, config.UsersPerRound).Err()
 	return
 }
@@ -458,6 +458,7 @@ func sendNotifyMessages(tx *gorm.DB, conversation string, users []string, round 
 			ConversationID: conversation,
 			RecipientID:    user,
 		}
+		m.ID = 0
 		m.Category = "PLAIN_TEXT"
 		m.MessageID = uuid.Must(uuid.NewV4()).String()
 		m.Data = base64.StdEncoding.EncodeToString([]byte(content))
@@ -482,11 +483,11 @@ func sendVotesResults(ctx context.Context, id int64) error {
 	}
 
 	template := `投票结果为(红/黑):
-	------------------------------------
-	A | %4v | %4v | %4v | %4v | %4v |%4v 
-	------------------------------------
+   -----------------------------------
+	A | %4v | %4v | %4v | %4v | %4v |%4v 	
+   -------------------------------------
 	B | %4v | %4v | %4v | %4v | %4v |%4v   
-	------------------------------------
+   -----------------------------------
 	`
 	var list [12]interface{}
 	for i := 0; i < len(list); i++ {
@@ -519,4 +520,16 @@ func sendVotesResults(ctx context.Context, id int64) error {
 		}
 	}
 	return nil
+}
+
+func sendMessage(ctx context.Context, conversation, user, content string) error {
+	m := &models.Message{
+		UserID:         config.UserID,
+		ConversationID: conversation,
+		RecipientID:    user,
+		MessageID:      uuid.Must(uuid.NewV4()).String(),
+		Category:       "PLAIN_TEXT",
+		Data:           base64.StdEncoding.EncodeToString([]byte(content)),
+	}
+	return models.InsertMessage(ctx, m)
 }

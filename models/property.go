@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/MooooonStar/red-or-black/session"
+	"github.com/jinzhu/gorm"
 )
 
 type Property struct {
@@ -20,6 +21,9 @@ func (Property) TableName() string {
 func ReadProperty(ctx context.Context, key string) (string, error) {
 	var p Property
 	err := session.Database(ctx).Where("`key` = ?", key).First(&p).Error
+	if gorm.IsRecordNotFoundError(err) {
+		return "", nil
+	}
 	return p.Value, err
 }
 
