@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	Rules            = "eyJhdHRhY2htZW50X2lkIjoiMzg3MmVmYTctZjNiNS00MTVkLTk4OWYtMjg1OTkxNGQwZDlkIiwibWltZV90eXBlIjoiaW1hZ2UvcG5nIiwic2l6ZSI6MjA4MjM1LCJ3aWR0aCI6MTg4MiwiaGVpZ2h0Ijo3NzgsIm5hbWUiOiJJTUdfMjAxOTExNl8xNjI0XzEwNDE0NjkyNy5wbmciLCJ0aHVtYm5haWwiOiJpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBRUFBQUFCQUNBSUFBQUFsQythSkFBQUFBM05DU1ZRSUNBamI0VS9nQUFBQVlVbEVRVlJvZ2UzUFFRMEFJQkRBTU1DL3RCT0ZDQjROeWFwZzJ6T3pmblowd0tzR3RBYTBCclFHdEFhMEJyUUd0QWEwQnJRR3RBYTBCclFHdEFhMEJyUUd0QWEwQnJRR3RBYTBCclFHdEFhMEJyUUd0QWEwQnJRR3RBYTBCclFHdEF1YjZRTGtXcWZSeVFBQUFBQkpSVTVFcmtKZ2dnPT0iLCJkaWdlc3QiOiIiLCJrZXkiOiIifQ=="
+	Rules            = "eyJhdHRhY2htZW50X2lkIjoiMjY4MDA0Y2QtZjU0Yy00Yzg2LWFiNmYtODVjNjU2ZTQzYzRjIiwiaGVpZ2h0IjoxMTY1LCJtaW1lX3R5cGUiOiJpbWFnZS9qcGVnIiwibWluZV90eXBlIjoiaW1hZ2UvanBlZyIsInNpemUiOjEzMzI2NSwidGh1bWJuYWlsIjoiLzlqLzRBQVFTa1pKUmdBQkFRQUFBUUFCQUFELzJ3QkRBQU1DQWdNQ0FnTURBd01FQXdNRUJRZ0ZCUVFFQlFvSEJ3WUlEQW9NREFzS0N3c05EaElRRFE0UkRnc0xFQllRRVJNVUZSVVZEQThYR0JZVUdCSVVGUlQvMndCREFRTUVCQVVFQlFrRkJRa1VEUXNORkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCVC93QUFSQ0FCQUFEd0RBU0lBQWhFQkF4RUIvOFFBR3dBQUFnTUJBUUVBQUFBQUFBQUFBQUFBQkFVQ0F3WUJBQWoveEFBakVBQUNBZ0lDQXdBREFRRUFBQUFBQUFBQkFnQURCQkVGSVJJeFFSVWlRaE15LzhRQUZnRUJBUUVBQUFBQUFBQUFBQUFBQUFBQUFRQUMvOFFBRmhFQkFRRUFBQUFBQUFBQUFBQUFBQUFBQUFFUi85b0FEQU1CQUFJUkF4RUFQd0Q0dlRIL0FORDYzQ0Y0N3lYL0FKbHVBdmtONmpXb0FEc1F0T0VObkRFL3pCck9KWmY1bXVKVHhnR1V5Ym1kT00xK05iZnFkYmpXSHlPbEtreVQrT2pGWXpkbUVWMzFCbXFJSmp6SzFveFJhZjNQY29EL0FJNjdTaUhXWHNxeER4MlFlaHVPd3BzcmtvRHY1RjEzMll2dHpYYyt6RHNqQ0xHVWZqakJCQmx1UHM4MmUydmNuYmlGWU8yT2R4U051VXpiN2dqV0VtRVdVa1FWazdqQU80NXo1Q2FyRWJ5ckV5T0Qwd21peHNud1NGYWhreUtUM0kyVnJycUw3ZVNDbVZIa3dSN2dVc2xRQ1lFNTBaMjdNREdDdmtBeURsN1FCMi9hRVhXN2dqTjNHTW5XRGcrUTNEbnh5aS9aWng5MWFvTmtTekl5YXo2SWtTaTZwaWZzb2V0MUgyTlJZamZaVmtNbmlkYWdzS0hMQ1E4aVpkZTQyZFNrV0NJUmNkU2hoM0NXc0dwUXgyWXAvOWtcdTAwM2QiLCJ3aWR0aCI6MTA4MH0="
 	RedisWaitingList = "waitinglist"
 	CmdAlreadyPaid   = "ihavepaidalready"
 	GroupOneName     = "A组"
@@ -367,14 +367,14 @@ func startGame(ctx context.Context, users []string) (err error) {
 	}
 	var started bool
 	err = session.RunInTransaction(ctx, func(tx *gorm.DB) error {
-		g := &models.Game{
+		game := &models.Game{
 			Prize:     "0",
 			Round:     1,
 			Status:    models.GameStatusActive,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
-		err := tx.Create(g).Error
+		err := tx.Create(game).Error
 		if err != nil {
 			return err
 		}
@@ -400,7 +400,7 @@ func startGame(ctx context.Context, users []string) (err error) {
 				side, conversation = models.SideTwo, id2
 			}
 			player := &models.Player{
-				GameID:       g.ID,
+				GameID:       game.ID,
 				UserID:       user,
 				Side:         side,
 				Conversation: conversation,
