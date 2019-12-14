@@ -107,16 +107,20 @@ func processSnapshot(ctx context.Context, s *models.Snapshot) error {
 		return err
 	}
 	if payment == nil {
-		//return refundSnapshot(ctx, s, "Invalid payment")
 		return nil
 	}
 	am, _ := decimal.NewFromString(payment.Amount)
 	if payment.AssetID != s.AssetID || !IsZero(am.Sub(amount)) || payment.UserID != s.OpponentID {
-		log.Println(payment.AssetID == s.AssetID, IsZero(am.Sub(amount)), payment.UserID != s.OpponentID)
 		//return refundSnapshot(ctx, s, "Invalid payment")
 		return nil
 	}
 	return models.UpdatePaymentPaid(ctx, payment.ID)
+	// err = models.UpdatePaymentPaid(ctx, payment.ID)
+	// if err != nil {
+	// 	return err
+	// }
+	// conversation := bot.UniqueConversationId(config.UserID, s.OpponentID)
+	// return sendWaitingMessage(ctx, conversation, s.OpponentID)
 }
 
 func IsZero(a decimal.Decimal) bool {

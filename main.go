@@ -20,6 +20,12 @@ func main() {
 
 	err := make(chan error)
 	<-err
+
+	// id := "edd18cfa-3c13-38b5-8074-c10cc71731da"
+	// token, _ := bot.SignAuthenticationToken(config.UserID, config.SessionID, config.PrivateKey, "GET", "/conversations/"+id, "")
+	// conversation, _ := bot.ConversationShow(ctx, id, token)
+	// bt, _ := json.Marshal(conversation)
+	// log.Println(string(bt))
 }
 
 func initContext() context.Context {

@@ -5,25 +5,29 @@ import (
 	"time"
 
 	"github.com/MooooonStar/red-or-black/session"
+	"github.com/jinzhu/gorm"
 )
 
 const (
-	SideOne = "ONE"
-	SideTwo = "TWO"
+	SideOne = "one"
+	SideTwo = "two"
 )
 
 type Player struct {
-	GameID       int    `gorm:"PRIMARY_KEY"`
+	GameID       int64  `gorm:"PRIMARY_KEY"`
 	UserID       string `gorm:"PRIMARY_KEY"`
 	Side         string
 	Conversation string
 	CreatedAt    time.Time
-	DeletedAt    time.Time
+	DeletedAt    *time.Time
 }
 
 func FindCurrentPlayer(ctx context.Context, user string) (*Player, error) {
 	var player Player
 	err := session.Database(ctx).Where("user_id = ?", user).First(&player).Error
+	if gorm.IsRecordNotFoundError(err) {
+		return nil, nil
+	}
 	return &player, err
 }
 

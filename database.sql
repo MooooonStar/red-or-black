@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS payments (
     paid               TINYINT(1),
     created_at         TIMESTAMP,
     updated_at         TIMESTAMP,
+    deleted_at         TIMESTAMP,
     PRIMARY KEY (id)
 )charset=utf8mb4;
 
@@ -42,7 +43,7 @@ CREATE TABLE IF NOT EXISTS players (
     side               VARCHAR(36),
     conversation       CHAR(36),
     created_at         TIMESTAMP,
-    updated_at         TIMESTAMP,
+    deleted_at         TIMESTAMP,
     PRIMARY KEY (game_id, user_id)
 )charset=utf8mb4;
 
@@ -59,9 +60,12 @@ CREATE TABLE IF NOT EXISTS records(
     round      INT(11),
     one_red    INT(11),
     one_black  INT(11),
+    one_credit INT(11),
     two_red    INT(11),
     two_black  INT(11),
+    two_credit INT(11),
     created_at TIMESTAMP,
+    updated_at TIMESTAMP,
     PRIMARY KEY(id)
 ) charset=utf8mb4;
 

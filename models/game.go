@@ -25,10 +25,10 @@ type Game struct {
 }
 
 func InsertGame(ctx context.Context, g *Game) error {
-	return session.Database(ctx).FirstOrCreate(g).Error
+	return session.Database(ctx).Create(g).Error
 }
 
-func FindGame(ctx context.Context, id int) (*Game, error) {
+func FindGame(ctx context.Context, id int64) (*Game, error) {
 	var g Game
 	err := session.Database(ctx).Where("id = ?", id).First(&g).Error
 	return &g, err
@@ -36,7 +36,7 @@ func FindGame(ctx context.Context, id int) (*Game, error) {
 
 func FindPrizePool(ctx context.Context, deadline int64) (string, error) {
 	var games []*Game
-	err := session.Database(ctx).Where("status = ? AND used = ? AND id <= ?", GameStatusDone, false, deadline).Find(&games).Error
+	err := session.Database(ctx).Where("status = ? AND used = ? AND id < ?", GameStatusDone, false, deadline).Find(&games).Error
 	if err != nil {
 		return "0", err
 	}

@@ -17,6 +17,7 @@ type Payment struct {
 	Paid      bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
 
 func (pay Payment) TableName() string {

@@ -1,0 +1,4 @@
+config/keystore*.json
+config/config.go
+
+red-or-black

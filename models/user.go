@@ -38,7 +38,7 @@ func InsertUser(ctx context.Context, user *User) error {
 }
 
 func UpdateUserStatus(ctx context.Context, userID, status string) (int64, error) {
-	db := session.Database(ctx).Model(User{}).Debug().Where("user_id = ?", userID).Update(map[string]interface{}{
+	db := session.Database(ctx).Model(User{}).Where("user_id = ?", userID).Update(map[string]interface{}{
 		"status": status,
 	})
 	return db.RowsAffected, db.Error
