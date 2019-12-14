@@ -360,12 +360,10 @@ func startGame(ctx context.Context, users []string) (err error) {
 		if err != nil {
 			return err
 		}
-		id1 = bot.UniqueConversationId(fmt.Sprintf("game.no%v.one", g.ID), config.UserID)
 		err = sendNotifyMessages(tx, id1, users[:mid], 1)
 		if err != nil {
 			return err
 		}
-		id2 = bot.UniqueConversationId(fmt.Sprintf("game.no%v.two", g.ID), config.UserID)
 		err = sendNotifyMessages(tx, id2, users[mid:], 1)
 		if err != nil {
 			return err
@@ -483,11 +481,11 @@ func sendVotesResults(ctx context.Context, id int64) error {
 	}
 
 	template := `投票结果为(红/黑):
-   -----------------------------------
+    -----------------------------------
 	A | %4v | %4v | %4v | %4v | %4v |%4v 	
-   -------------------------------------
+    -----------------------------------
 	B | %4v | %4v | %4v | %4v | %4v |%4v   
-   -----------------------------------
+    -----------------------------------
 	`
 	var list [12]interface{}
 	for i := 0; i < len(list); i++ {
