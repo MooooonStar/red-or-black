@@ -221,7 +221,7 @@ func settleGame(ctx context.Context, id int64) error {
 			var content string
 			if side == "both" || side == player.Side {
 				t := models.Transfer{
-					TransferID: bot.UniqueConversationId(player.UserID, "PRIZE FROM GAME"+fmt.Sprint(id)),
+					TransferID: bot.UniqueConversationId(player.UserID, "game.no"+fmt.Sprint(id)),
 					AssetID:    models.BTC,
 					Amount:     average.String(),
 					OpponentID: player.UserID,
@@ -485,12 +485,11 @@ func sendVotesResults(ctx context.Context, id int64) error {
 	}
 
 	template := `投票结果为(红/黑):
-    -----------------------------------
-	A | %4v | %4v | %4v | %4v | %4v |%4v 	
-    -----------------------------------
-	B | %4v | %4v | %4v | %4v | %4v |%4v   
-    -----------------------------------
-	`
+-----------------------------------
+A  | %4v | %4v | %4v | %4v | %4v |%4v 	
+-----------------------------------
+B  | %4v | %4v | %4v | %4v | %4v |%4v   
+-----------------------------------`
 	var list [12]interface{}
 	for i := 0; i < len(list); i++ {
 		list[i] = "-/-"
@@ -531,7 +530,7 @@ func sendMessage(ctx context.Context, conversation, user, category, content stri
 		RecipientID:    user,
 		MessageID:      uuid.Must(uuid.NewV4()).String(),
 		Category:       category,
-		Data:           base64.StdEncoding.EncodeToString([]byte(content)),
+		Data:           content,
 	}
 	return models.InsertMessage(ctx, m)
 }
