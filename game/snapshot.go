@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	bot "github.com/MixinNetwork/bot-api-go-client"
 	"github.com/MooooonStar/red-or-black/config"
 	"github.com/MooooonStar/red-or-black/models"
+	"github.com/MooooonStar/red-or-black/session"
 	"github.com/shopspring/decimal"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -18,11 +19,16 @@ const (
 	CheckpointMixinNetworkSnapshots = "checkpoint-mixin-network-snapshots"
 )
 
+func initProperty(ctx context.Context) error {
+	property := &models.Property{CheckpointMixinNetworkSnapshots, time.Now().Format(time.RFC3339Nano), time.Now()}
+	return session.Database(ctx).FirstOrCreate(property).Error
+}
+
 func PollSnapshots(ctx context.Context) {
 	const limit = 500
 	checkpoint, err := models.ReadPropertyAsTime(ctx, CheckpointMixinNetworkSnapshots)
 	if err != nil {
-		log.Println("ReadPropertyAsTime CheckpointMixinNetworkSnapshots", err)
+		log.Error("ReadPropertyAsTime CheckpointMixinNetworkSnapshots", err)
 		panic(err)
 	}
 	if checkpoint.IsZero() {
@@ -49,7 +55,7 @@ func PollSnapshots(ctx context.Context) {
 		}
 		err = models.WriteTimeProperty(ctx, CheckpointMixinNetworkSnapshots, checkpoint)
 		if err != nil {
-			log.Println("WriteTimeProperty CheckpointMixinNetworkSnapshots", err)
+			log.Error("WriteTimeProperty CheckpointMixinNetworkSnapshots", err)
 		}
 	}
 }

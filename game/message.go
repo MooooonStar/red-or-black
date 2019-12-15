@@ -7,7 +7,7 @@ import (
 	bot "github.com/MooooonStar/bot-api-go-client"
 	"github.com/MooooonStar/red-or-black/config"
 	"github.com/MooooonStar/red-or-black/models"
-	"github.com/smallnest/rpcx/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func (j *Judge) sendMessagsLoop(ctx context.Context) {
