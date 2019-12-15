@@ -28,6 +28,7 @@ func main() {
 	// log.Println(string(bt))
 }
 
+
 func initContext() context.Context {
 	ctx := context.Background()
 	path := fmt.Sprintf("%s:%s@%s(%s)/%s?parseTime=True&charset=utf8mb4",

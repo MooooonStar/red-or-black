@@ -20,7 +20,7 @@ const (
 )
 
 func initProperty(ctx context.Context) error {
-	property := &models.Property{CheckpointMixinNetworkSnapshots, time.Now().Format(time.RFC3339Nano), time.Now()}
+	property := &models.Property{CheckpointMixinNetworkSnapshots, time.Now().UTC().Format(time.RFC3339Nano), time.Now()}
 	return session.Database(ctx).FirstOrCreate(property).Error
 }
 

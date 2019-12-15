@@ -9,7 +9,6 @@ import (
 	"github.com/MooooonStar/red-or-black/session"
 	"github.com/go-redis/redis/v7"
 	"github.com/jinzhu/gorm"
-	"github.com/smallnest/rpcx/log"
 	"github.com/stretchr/testify/assert"
 	_ "github.com/go-sql-driver/mysql"
 )
